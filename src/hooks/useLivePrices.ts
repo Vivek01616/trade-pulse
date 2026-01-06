@@ -9,11 +9,16 @@ export const useLivePrices = () => {
     const interval = setInterval(() => {
       setIndices((currentIndices) =>
         currentIndices.map((index) => {
-          const volatility = index.symbol === "VIX" ? 0.005 : 0.001;
+          // Different volatility for forex vs indices
+          const isForex = index.category === "forex";
+          const baseVolatility = isForex ? 0.0002 : 0.001;
+          const volatility = index.symbol === "VIX" ? 0.005 : baseVolatility;
+          
           const priceChange = (Math.random() - 0.5) * 2 * volatility * index.price;
-          const newPrice = parseFloat((index.price + priceChange).toFixed(2));
+          const decimals = isForex && index.price < 10 ? 5 : 2;
+          const newPrice = parseFloat((index.price + priceChange).toFixed(decimals));
           const newChange = parseFloat(
-            (index.change + priceChange * 0.1).toFixed(2)
+            (index.change + priceChange * 0.1).toFixed(decimals)
           );
           const newChangePercent = parseFloat(
             ((newChange / (newPrice - newChange)) * 100).toFixed(2)
