@@ -4,6 +4,7 @@ import IndexCard from "@/components/IndexCard";
 import PriceChart from "@/components/PriceChart";
 import AIPrediction from "@/components/AIPrediction";
 import MarketStats from "@/components/MarketStats";
+import MarketDropdown from "@/components/MarketDropdown";
 import { useLivePrices } from "@/hooks/useLivePrices";
 
 const Index = () => {
@@ -14,6 +15,9 @@ const Index = () => {
   const currentSelectedIndex =
     indices.find((i) => i.id === selectedIndex.id) || indices[0];
 
+  // Show top 8 indices in the grid
+  const displayedIndices = indices.slice(0, 8);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -22,18 +26,32 @@ const Index = () => {
         {/* Market Stats */}
         <MarketStats />
 
+        {/* Market Dropdown */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-xl font-semibold text-foreground">
+              Select Market
+            </h2>
+            <MarketDropdown
+              indices={indices}
+              selectedIndex={currentSelectedIndex}
+              onSelect={setSelectedIndex}
+            />
+          </div>
+        </section>
+
         {/* Indices Grid */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-foreground">
-              Market Indices
+              Popular Markets
             </h2>
             <span className="text-xs text-muted-foreground">
               Live prices • Updated every 2s
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {indices.map((index, idx) => (
+            {displayedIndices.map((index, idx) => (
               <div key={index.id} style={{ animationDelay: `${idx * 50}ms` }}>
                 <IndexCard
                   index={index}

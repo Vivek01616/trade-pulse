@@ -1,4 +1,14 @@
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Sparkles } from "lucide-react";
+import { useState } from "react";
+import {
+  Brain,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Shield,
+  Zap,
+  Loader2,
+} from "lucide-react";
+import { Button } from "./ui/button";
 import { IndexData } from "@/data/indices";
 import { cn } from "@/lib/utils";
 
@@ -6,40 +16,92 @@ interface AIPredictionProps {
   selectedIndex: IndexData;
 }
 
+interface PredictionResult {
+  direction: "bullish" | "bearish";
+  confidence: number;
+  entry: number;
+  stopLoss: number;
+  takeProfit1: number;
+  takeProfit2: number;
+  takeProfit3: number;
+  support: number;
+  resistance: number;
+  riskReward: number;
+  analysis: string;
+}
+
 const AIPrediction = ({ selectedIndex }: AIPredictionProps) => {
-  // Simulated AI predictions based on index data
-  const predictions = {
-    shortTerm: {
-      direction: selectedIndex.change >= 0 ? "bullish" : "bearish",
-      confidence: Math.floor(65 + Math.random() * 25),
-      target: selectedIndex.price * (selectedIndex.change >= 0 ? 1.02 : 0.98),
-    },
-    mediumTerm: {
-      direction: Math.random() > 0.4 ? "bullish" : "bearish",
-      confidence: Math.floor(55 + Math.random() * 30),
-      target:
-        selectedIndex.price * (Math.random() > 0.4 ? 1.05 : 0.95),
-    },
-    signals: [
-      {
-        type: "momentum",
-        value: selectedIndex.change >= 0 ? "Strong Buy" : "Hold",
-        strength: selectedIndex.change >= 0 ? 85 : 45,
-      },
-      {
-        type: "volatility",
-        value: Math.abs(selectedIndex.changePercent) > 1 ? "High" : "Low",
-        strength: Math.abs(selectedIndex.changePercent) * 30,
-      },
-      {
-        type: "trend",
-        value: selectedIndex.change >= 0 ? "Uptrend" : "Downtrend",
-        strength: Math.abs(selectedIndex.changePercent) * 25 + 50,
-      },
-    ],
+  const [isLoading, setIsLoading] = useState(false);
+  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+
+  const isForex = selectedIndex.category === "forex";
+  const decimals = isForex && selectedIndex.price < 10 ? 5 : 2;
+
+  const formatPrice = (price: number) => {
+    if (isForex && selectedIndex.price < 10) {
+      return price.toFixed(5);
+    }
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
-  const isBullish = predictions.shortTerm.direction === "bullish";
+  const generatePrediction = () => {
+    setIsLoading(true);
+
+    // Simulate AI analysis delay
+    setTimeout(() => {
+      const isBullish = Math.random() > 0.45;
+      const volatilityFactor = isForex ? 0.003 : 0.015;
+      const price = selectedIndex.price;
+
+      const entryOffset = (Math.random() * 0.002 + 0.001) * price;
+      const entry = isBullish ? price + entryOffset : price - entryOffset;
+
+      const slDistance = (Math.random() * 0.01 + 0.005) * price;
+      const stopLoss = isBullish ? entry - slDistance : entry + slDistance;
+
+      const tp1Distance = slDistance * (1.5 + Math.random());
+      const tp2Distance = slDistance * (2.5 + Math.random());
+      const tp3Distance = slDistance * (4 + Math.random());
+
+      const takeProfit1 = isBullish ? entry + tp1Distance : entry - tp1Distance;
+      const takeProfit2 = isBullish ? entry + tp2Distance : entry - tp2Distance;
+      const takeProfit3 = isBullish ? entry + tp3Distance : entry - tp3Distance;
+
+      const supportOffset = (Math.random() * 0.02 + 0.01) * price;
+      const resistanceOffset = (Math.random() * 0.02 + 0.01) * price;
+
+      const support = Math.min(selectedIndex.low, price - supportOffset);
+      const resistance = Math.max(selectedIndex.high, price + resistanceOffset);
+
+      const riskReward = tp2Distance / slDistance;
+
+      const analyses = [
+        `Strong ${isBullish ? "bullish" : "bearish"} momentum detected with ${isBullish ? "higher highs" : "lower lows"} forming. Key ${isBullish ? "support" : "resistance"} holding well.`,
+        `Price action shows ${isBullish ? "accumulation" : "distribution"} pattern. Volume confirms ${isBullish ? "buying" : "selling"} pressure.`,
+        `Technical indicators align for ${isBullish ? "long" : "short"} entry. RSI and MACD showing ${isBullish ? "bullish" : "bearish"} divergence.`,
+        `Market structure favors ${isBullish ? "upside" : "downside"} movement. Watch for breakout ${isBullish ? "above" : "below"} key level.`,
+      ];
+
+      setPrediction({
+        direction: isBullish ? "bullish" : "bearish",
+        confidence: Math.floor(65 + Math.random() * 25),
+        entry: parseFloat(entry.toFixed(decimals)),
+        stopLoss: parseFloat(stopLoss.toFixed(decimals)),
+        takeProfit1: parseFloat(takeProfit1.toFixed(decimals)),
+        takeProfit2: parseFloat(takeProfit2.toFixed(decimals)),
+        takeProfit3: parseFloat(takeProfit3.toFixed(decimals)),
+        support: parseFloat(support.toFixed(decimals)),
+        resistance: parseFloat(resistance.toFixed(decimals)),
+        riskReward: parseFloat(riskReward.toFixed(2)),
+        analysis: analyses[Math.floor(Math.random() * analyses.length)],
+      });
+
+      setIsLoading(false);
+    }, 1500);
+  };
 
   return (
     <div className="glass-card p-6 animate-fade-in">
@@ -53,139 +115,167 @@ const AIPrediction = ({ selectedIndex }: AIPredictionProps) => {
             Neural network analysis for {selectedIndex.symbol}
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20">
-          <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-xs font-medium text-primary">AI Powered</span>
-        </div>
       </div>
 
-      <div className="grid gap-4 mb-6">
-        {/* Short Term Prediction */}
-        <div
-          className={cn(
-            "p-4 rounded-lg border",
-            isBullish
-              ? "bg-success/5 border-success/20"
-              : "bg-destructive/5 border-destructive/20"
-          )}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              24h Prediction
-            </span>
-            <div
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold",
-                isBullish
-                  ? "bg-success/20 text-success"
-                  : "bg-destructive/20 text-destructive"
-              )}
-            >
-              {isBullish ? (
-                <TrendingUp className="w-3 h-3" />
-              ) : (
-                <TrendingDown className="w-3 h-3" />
-              )}
-              {predictions.shortTerm.direction.toUpperCase()}
-            </div>
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Target Price</p>
-              <p className="font-mono text-xl font-bold text-foreground">
-                {predictions.shortTerm.target.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground mb-1">Confidence</p>
-              <p className="font-mono text-xl font-bold text-primary">
-                {predictions.shortTerm.confidence}%
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-secondary overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-1000",
-                isBullish ? "bg-success" : "bg-destructive"
-              )}
-              style={{ width: `${predictions.shortTerm.confidence}%` }}
-            />
-          </div>
-        </div>
+      {/* Predict Button */}
+      <Button
+        onClick={generatePrediction}
+        disabled={isLoading}
+        className="w-full mb-6 h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            Analyzing Market...
+          </>
+        ) : (
+          <>
+            <Zap className="w-5 h-5 mr-2" />
+            Generate Prediction
+          </>
+        )}
+      </Button>
 
-        {/* Medium Term Prediction */}
-        <div className="p-4 rounded-lg bg-secondary/30 border border-border/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              7-Day Outlook
-            </span>
-            <div
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold",
-                predictions.mediumTerm.direction === "bullish"
-                  ? "bg-success/20 text-success"
-                  : "bg-destructive/20 text-destructive"
-              )}
-            >
-              {predictions.mediumTerm.direction === "bullish" ? (
-                <TrendingUp className="w-3 h-3" />
-              ) : (
-                <TrendingDown className="w-3 h-3" />
-              )}
-              {predictions.mediumTerm.direction.toUpperCase()}
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Target:</span>
-            <span className="font-mono font-semibold text-foreground">
-              {predictions.mediumTerm.target.toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-              })}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-sm mt-1">
-            <span className="text-muted-foreground">Confidence:</span>
-            <span className="font-mono font-semibold text-primary">
-              {predictions.mediumTerm.confidence}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Trading Signals */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-primary" />
-          Trading Signals
-        </h3>
-        <div className="space-y-2">
-          {predictions.signals.map((signal, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/30"
-            >
-              <div>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {signal.type}
+      {prediction && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Direction & Confidence */}
+          <div
+            className={cn(
+              "p-4 rounded-lg border",
+              prediction.direction === "bullish"
+                ? "bg-success/10 border-success/30"
+                : "bg-destructive/10 border-destructive/30"
+            )}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold",
+                  prediction.direction === "bullish"
+                    ? "bg-success/20 text-success"
+                    : "bg-destructive/20 text-destructive"
+                )}
+              >
+                {prediction.direction === "bullish" ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : (
+                  <TrendingDown className="w-4 h-4" />
+                )}
+                {prediction.direction.toUpperCase()}
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Confidence</p>
+                <p className="text-2xl font-bold text-primary">
+                  {prediction.confidence}%
                 </p>
-                <p className="text-sm font-medium text-foreground">{signal.value}</p>
-              </div>
-              <div className="w-20 h-2 rounded-full bg-secondary overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-1000"
-                  style={{ width: `${Math.min(signal.strength, 100)}%` }}
-                />
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="h-2 rounded-full bg-secondary overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-1000",
+                  prediction.direction === "bullish" ? "bg-success" : "bg-destructive"
+                )}
+                style={{ width: `${prediction.confidence}%` }}
+              />
+            </div>
+          </div>
 
-      <div className="mt-6 p-3 rounded-lg bg-primary/5 border border-primary/10">
+          {/* Entry Point */}
+          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Entry Point</span>
+            </div>
+            <p className="font-mono text-2xl font-bold text-primary">
+              {formatPrice(prediction.entry)}
+            </p>
+          </div>
+
+          {/* Take Profit Levels */}
+          <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-success" />
+              <span className="text-sm font-semibold text-foreground">
+                Take Profit Levels
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">TP1</span>
+                <span className="font-mono font-semibold text-success">
+                  {formatPrice(prediction.takeProfit1)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">TP2</span>
+                <span className="font-mono font-semibold text-success">
+                  {formatPrice(prediction.takeProfit2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">TP3</span>
+                <span className="font-mono font-semibold text-success">
+                  {formatPrice(prediction.takeProfit3)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stop Loss */}
+          <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-destructive" />
+              <span className="text-sm font-semibold text-foreground">Stop Loss</span>
+            </div>
+            <p className="font-mono text-xl font-bold text-destructive">
+              {formatPrice(prediction.stopLoss)}
+            </p>
+          </div>
+
+          {/* Support & Resistance */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Support</p>
+              <p className="font-mono font-semibold text-success">
+                {formatPrice(prediction.support)}
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+              <p className="text-xs text-muted-foreground mb-1">Resistance</p>
+              <p className="font-mono font-semibold text-destructive">
+                {formatPrice(prediction.resistance)}
+              </p>
+            </div>
+          </div>
+
+          {/* Risk/Reward */}
+          <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Risk/Reward Ratio</span>
+              <span className="font-mono font-bold text-accent">
+                1:{prediction.riskReward}
+              </span>
+            </div>
+          </div>
+
+          {/* Analysis */}
+          <div className="p-4 rounded-lg bg-secondary/30 border border-border">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {prediction.analysis}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!prediction && !isLoading && (
+        <div className="text-center py-8 text-muted-foreground">
+          <Brain className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Click the button above to generate AI prediction</p>
+        </div>
+      )}
+
+      <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
         <p className="text-xs text-muted-foreground text-center">
           ⚠️ AI predictions are for informational purposes only. Not financial advice.
         </p>
